@@ -159,6 +159,32 @@ func (c *Client) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// Drop releases the underlying cache for the request's URL.
+func (c *Client) Drop(r *http.Request) {
+	params := r.URL.Query()
+	key := generateKey(r.URL.String())
+
+	if _, ok := params[c.refreshKey]; ok {
+		delete(params, c.refreshKey)
+
+		r.URL.RawQuery = params.Encode()
+		key = generateKey(r.URL.String())
+	}
+
+	c.adapter.Release(key)
+}
+
+// AddOptions allows the addition or re-application of options after a client has been created.
+func (c *Client) AddOptions(opts ...ClientOption) error {
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Client) cacheableMethod(method string) bool {
 	for _, m := range c.methods {
 		if method == m {
