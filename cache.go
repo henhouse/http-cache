@@ -164,6 +164,18 @@ func (c *Client) Drop(r *http.Request) {
 	params := r.URL.Query()
 	key := generateKey(r.URL.String())
 
+	if r.Method == http.MethodPost && r.Body != nil {
+		body, err := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			return
+		}
+
+		reader := io.NopCloser(bytes.NewBuffer(body))
+		key = generateKeyWithBody(r.URL.String(), body)
+		r.Body = reader
+	}
+
 	if _, ok := params[c.refreshKey]; ok {
 		delete(params, c.refreshKey)
 
